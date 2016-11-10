@@ -1,0 +1,4 @@
+#jsoundcard
+Run any function of sound amplitudes, microphone to speakers, reducing lag using statistics of buffer timing especially in Linux
+
+When generating audio, why use sine waves and standard effects? Directly tell the sound-card how much electricity should be in the speaker/microphone wires many times per second as numbers from -1 to 1. Automatically finds good sound-card options and balances between linear interpolation speeds of consuming microphone buffer (and then any Java transform function per sample) and producing into speakers buffer and to keep delay between them small. Its really simple you only have to write 1 function that takes an array parameter. First 2 indexs are output to speakers. Next index is 1 microphone. Technically you can ask it for any number of speakers and microphones, but version 0.4 only supports 2 speakers and 1 microphone simultaneously.
