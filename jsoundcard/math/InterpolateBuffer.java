@@ -34,7 +34,7 @@ public class InterpolateBuffer{
 	*/
 	protected double positionInBuffer;
 	
-	public void push(double value){
+	public void add(double value){
 		if(bufferUsed == buffer.length){
 			double newBuffer[] = new double[buffer.length*2];
 			System.arraycopy(buffer, 0, newBuffer, 0, bufferUsed);
@@ -56,7 +56,7 @@ public class InterpolateBuffer{
 		buffer[bufferUsed++] = value;
 	}
 	
-	public double pop(double sizeToPop){
+	public double remove(double sizeToPop){
 		//TODO Return average value over the removed area instead of only the value at 1 position.
 		if(positionInBuffer+sizeToPop > bufferUsed){
 			//throw new IndexOutOfBoundsException("positionInBuffer="+positionInBuffer+" sizeToPop="+sizeToPop+" end="+end);

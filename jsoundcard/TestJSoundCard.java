@@ -1,9 +1,6 @@
 /** Ben F Rayfield offers JSoundCard under Apache 2, GNU LGPL, and/or Classpath Exception. */
 package jsoundcard;
 import jsoundcard.example.*;
-import jsoundcard.hardware.*;
-import java.util.*;
-import javax.sound.sampled.Mixer;
 
 public class TestJSoundCard{
 	private TestJSoundCard(){}
@@ -14,10 +11,17 @@ public class TestJSoundCard{
 		JSoundCard.sleepSeconds(1.);
 		//Play 2 test sounds
 		SoundFunc testSounds[] = new SoundFunc[]{
-			new ExampleSoundFuncAmplifyMicrophoneOn2Speakers(),
-			new ExampleSoundFuncSimpleSineWave(3)
+			//new ExampleSoundFuncMeasureFreqs(200, 400),
+			//new ExampleSoundFuncMeasureFreqs(200, 400, 800),
+			//new ExampleSoundFuncMeasureFreqs(1400),
+			new ExampleSoundFuncMetaphysicalGameControllerEarlyExperiment(7000,2000,3000)//,
+			//new ExampleSoundFuncMeasureFreqs(300, 400, 500, 1500),
+			//new ExampleSoundFuncMeasureFreqs(200, 400, 800, 900, 1000),
+			//new ExampleSoundFuncMeasureFreqs(200, 300, 400, 500, 600),
+			//new ExampleSoundFuncAmplifyMicrophoneOn2Speakers(),
+			//new ExampleSoundFuncSimpleSineWave(3)
 		};
-		int seconds = 10;
+		long seconds = 60;
 		int i = 0;
 		for(SoundFunc f : testSounds){
 			JSoundCard.log("About to play: "+f+" for "+seconds+" seconds...");

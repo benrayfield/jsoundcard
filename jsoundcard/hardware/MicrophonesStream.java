@@ -15,7 +15,7 @@ public class MicrophonesStream extends TimedFrameStream{
 	
 	/** Like InputStream.read and TargetDataLine.read but for doubles instead of bytes */
 	public void readOrWriteFrames(double flos[], int offset, int frames){
-		//TODO Is this bit math correct?
+		//TODO Is this bit math correct? Audio sounds smooth, so probably it is, but verify.
 		byte b[] = new byte[2*frameSize*frames];
 		((TargetDataLine)dataLine).read(b, 0, b.length);
 		int samples = frames*frameSize;

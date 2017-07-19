@@ -52,17 +52,22 @@ the simple PCM way this software uses sound without compression or decompression
 public class JSoundCard{
 	private JSoundCard(){}
 	
+	public static final boolean doLog = false;
+	
 	//TODO Include bufferBetweenSpeakersAndMicrophone[each index].size() in total
 	//buffer size (also includes microphones.bufferUsed() and speakers.bufferUsed())
 	
 	public static final int DEFAULT_SPEAKER_QUANTITY = 2;
 	private static int speakerQuantity = DEFAULT_SPEAKER_QUANTITY;
+	public static int speakerQuantity(){ return speakerQuantity; }
 	
 	public static final int DEFAULT_MICROPHONE_QUANTITY = 1;
 	private static int microphoneQuantity = DEFAULT_MICROPHONE_QUANTITY;
+	public static int microphoneQuantity(){ return microphoneQuantity; }
 	
 	public static final double DEFAULT_FRAMES_PER_SECOND = 44100;
 	private static double framesPerSecond = DEFAULT_FRAMES_PER_SECOND;
+	public static double framesPerSecond(){ return framesPerSecond; }
 	
 	/** TODO Allow microphones from multiple sound-cards, so this would be a List<MicrophoneStream>,
 	but that is hard to design the timing code for, since different sound-cards can have
@@ -79,7 +84,11 @@ public class JSoundCard{
 	private static volatile SpeakersStream speakers;
 	
 	private static volatile SoundFunc playing;
+	
+	/** null if nothing is playing */
 	public static SoundFunc playingSoundFunc(){ return playing; }
+	
+	public static boolean isPlaying(){ return playing != null; }
 	
 	/** Only count block sizes when speakers buffer is not empty *
 	private static final DecayingBellCurveWithRangeLimit speakersFramesPerBlockStatistics_whenNotEmpty =
@@ -88,7 +97,7 @@ public class JSoundCard{
 	private static final double speakersFramesPerBlockStatistics_decayFraction = 1./300;
 	*/
 	
-	private static long lastNanosecondTime = System.nanoTime();
+	private static volatile long lastNanosecondTime = System.nanoTime();
 	
 	/** If there are long pauses, I don't want them to change the statistics.
 	Let the sound skip then. For normal operation of the program, the delays between
@@ -177,7 +186,8 @@ public class JSoundCard{
 		new DecayingBellCurveWithRangeLimit(
 			targetBufferAmountUsed.ave(), targetBufferAmountUsed.stdDev(), 0., 1000000.);
 	
-	private static final double averageBufferAmountUsedRecently_decaySeconds = 2;
+	//private static final double averageBufferAmountUsedRecently_decaySeconds = 2; //commentedout 2017-7-19
+	private static final double averageBufferAmountUsedRecently_decaySeconds = 10;
 	
 	/** Current interpolating ratio between microphones and speakers buffers.
 	If no interpolating was necessary, this would be 1.
@@ -224,8 +234,10 @@ public class JSoundCard{
 		speakerQuantity = speakers;
 		microphoneQuantity = microphones;
 		JSoundCard.framesPerSecond = framesPerSecond;
-		playing = s;
-		frame = new double[s.frameSize()];
+		synchronized(JSoundCard.class){
+			playing = s;
+			frame = new double[s.frameSize()];
+		}
 		bufferBetweenSpeakersAndMicrophone = new InterpolateBuffer[microphones];
 		for(int i=0; i<microphones; i++) bufferBetweenSpeakersAndMicrophone[i] = new InterpolateBuffer();
 		if(playing != null && soundThread == null){
@@ -366,10 +378,15 @@ public class JSoundCard{
 	*/
 	static void pumpNextBlockOfAudioThenSleep() throws Exception{
 		//playing may be set to null before this function returns. Use this value of it.
-		SoundFunc soundFunc = playing;
+		SoundFunc playing;
+		double frame[];
+		synchronized(JSoundCard.class){
+			playing = JSoundCard.playing;
+			frame = JSoundCard.frame;
+		}
 		MicrophonesStream mic = JSoundCard.microphones;
 		SpeakersStream spk = JSoundCard.speakers;
-		if(soundFunc != null && spk != null){
+		if(playing != null && spk != null){
 			int spkBufferUsed = spk.bufferUsed();
 			double chanceSpkBufferIsEmpty = spkBufferUsed==0 ? 1. : 0.; //TODO gradual chance if its close to 0
 			int micBufferUsed = -1;
@@ -432,7 +449,7 @@ public class JSoundCard{
 				for(int micChannel=0; micChannel<micChannels; micChannel++){
 					InterpolateBuffer buf = bufferBetweenSpeakersAndMicrophone[micChannel];
 					for(int micFrame=0; micFrame<micFrames; micFrame++){
-						buf.push(micAmplitudes[micFrame*micChannels+micChannel]);
+						buf.add(micAmplitudes[micFrame*micChannels+micChannel]);
 					}
 				}
 
@@ -476,10 +493,10 @@ public class JSoundCard{
 					//Copy microphone amplitudes into parameter array so SoundFunc can see them
 					//frame[spkChannels+m] = micAmplitudes[f*micChannels+m];
 					InterpolateBuffer buf = bufferBetweenSpeakersAndMicrophone[micChannel];
-					frame[spkChannels+micChannel] = buf.pop(bufferConsumeDerivative);
+					frame[spkChannels+micChannel] = buf.remove(bufferConsumeDerivative);
 					//TODO slowly change bufferDerivative each frame.
 				}
-				soundFunc.readWriteFrame(frame);
+				playing.readWriteFrame(frame);
 				for(int spkChannel=0; spkChannel<spkChannels; spkChannel++){
 					spkAmplitudes[spkFrame*spkChannels+spkChannel] = frame[spkChannel];
 				}
@@ -539,7 +556,7 @@ public class JSoundCard{
 				//TODO remove this duplicate line
 				InterpolateBuffer smallestBuf = bufferBetweenSpeakersAndMicrophone[minInterpolateBufferUsedThisCycle_index];
 		
-				if(test++ % 100 == 0){
+				if(doLog && test++ % 100 == 0){
 					String n = "\r\n";
 					JSoundCard.log(
 						n+n+"seconds="+seconds

@@ -23,6 +23,7 @@ public abstract class TimedFrameStream implements FrameSize{
 		frameSize = f.getChannels();
 		bufferSize = dataLine.getBufferSize() / (2*frameSize);
 		//TODO Should f.getSampleRate() be divided by channels? Its supposed to be frames per second.
+		//TODO Move microphones-specific and speakers-specific code into those subclasses
 		if(dataLine instanceof TargetDataLine){ //microphone(s)
 			bufferSpeed = f.getSampleRate();
 		}else if(dataLine instanceof SourceDataLine){ //speaker(s)
